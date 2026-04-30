@@ -4,7 +4,7 @@
 This repository contains a project for detecting various types of weapons using the YOLOv8 model, offering real-time detection capabilities.
 
 ## Live Demo
-Check out the live demo [here](http://example.com/live-demo)!
+Check out the live demo [here](https://ahsan-weapon-detection.streamlit.app/)!
 
 ## Overview
 YOLOv8 is a state-of-the-art object detection algorithm that enables rapid and accurate detection of objects in images and videos. This project focuses on detecting the following types of weapons: knives, pistols, and rifles.
