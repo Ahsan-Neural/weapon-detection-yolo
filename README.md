@@ -1,44 +1,90 @@
 # Weapon Detection using YOLOv8 🔫
 
-## Description
-This repository contains a project for detecting various types of weapons using the YOLOv8 model, offering real-time detection capabilities.
+A real-time weapon detection system powered by YOLOv8, enabling rapid and accurate identification of various weapon types in images and video feeds.
 
-## Live Demo
-Check out the live demo [here](https://ahsan-weapon-detection.streamlit.app/)!
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit%20App-FF4B4B?style=flat-square)](https://ahsan-weapon-detection.streamlit.app/)
 
-## Overview
-YOLOv8 is a state-of-the-art object detection algorithm that enables rapid and accurate detection of objects in images and videos. This project focuses on detecting the following types of weapons: knives, pistols, and rifles.
+## 📋 Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Model Details](#model-details)
+- [Input/Output](#inputoutput)
+- [Author](#author)
 
-## Features
-- Real-time weapon detection
-- High accuracy with YOLOv8
-- Supports multiple weapon types
+## 🎯 Overview
 
-## Tech Stack
-- Python
-- TensorFlow
-- OpenCV
+This repository contains a sophisticated weapon detection system built on YOLOv8, a state-of-the-art object detection algorithm. The project delivers real-time detection capabilities with high accuracy, capable of identifying multiple weapon types in both static images and dynamic video feeds.
 
-## Input/Output Information
-- **Input:** Images or video feeds containing potential weapons.
-- **Output:** Detected weapons and their classifications.
+## ✨ Features
 
-## Setup Instructions
-1. Clone the repository:
+- **Real-time Detection**: Instantaneous weapon identification in images and video streams
+- **High Accuracy**: Powered by YOLOv8 for superior detection performance
+- **Multi-Class Support**: Detects various types of weapons
+- **Production-Ready**: Streamlit-based deployment with live demo available
+
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| **Framework** | Python |
+| **Detection** | YOLOv8 |
+| **Deep Learning** | TensorFlow |
+| **Computer Vision** | OpenCV |
+
+## 📦 Installation
+
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+
+### Setup
+
+1. **Clone the repository**
    ```bash
    git clone https://github.com/Ahsan-Neural/weapon-detection-yolo.git
+   cd weapon-detection-yolo
    ```
-2. Install the required dependencies:
+
+2. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the application:
+
+3. **Run the application**
    ```bash
    python app.py
    ```
 
-## Model Details
-The model used in this project is YOLOv8, known for its speed and accuracy in object detection tasks.
+## 🚀 Usage
 
-## Author Attribution
-Created by Ahsan-Neural.
+After installation, the application will start and you can:
+- Upload images for weapon detection
+- Stream video for real-time analysis
+- View detection results with classifications and confidence scores
+
+For a quick preview, check out the [live demo](https://ahsan-weapon-detection.streamlit.app/).
+
+## 🤖 Model Details
+
+**Model Architecture**: YOLOv8
+- **Strength**: Optimized for speed and accuracy in object detection
+- **Specialization**: Trained to detect and classify various weapon types
+- **Performance**: Real-time inference on standard hardware
+
+## 📥 Input/Output
+
+| Aspect | Details |
+|--------|---------|
+| **Input** | Images or video feeds containing potential weapons |
+| **Output** | Detected weapons with classifications and confidence metrics |
+
+## 👤 Author
+
+Created by **Ahsan-Neural**
+
+---
+
+**Repository**: [weapon-detection-yolo](https://github.com/Ahsan-Neural/weapon-detection-yolo)
