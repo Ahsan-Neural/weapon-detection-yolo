@@ -4,14 +4,11 @@ from PIL import Image
 import numpy as np
 import cv2
 import os
-import time
 import tempfile
 import av
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 
-# ----------------------------------------------------------------------------
-# PAGE CONFIG
-# ----------------------------------------------------------------------------
+
 st.set_page_config(
     page_title="Sentinel — Weapon Detection System",
     page_icon="assets/favicon.png" if os.path.exists("assets/favicon.png") else "🛰️",
@@ -19,9 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ----------------------------------------------------------------------------
-# FUTURISTIC THEME
-# ----------------------------------------------------------------------------
+
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
@@ -95,7 +90,7 @@ html, body, [class*="css"] { font-family: 'Rajdhani', sans-serif; }
 }
 .detection-tag.knife { border-color: rgba(255,110,199,0.4); color:#ff6ec7; background:rgba(255,110,199,0.08); }
 .detection-tag.pistol { border-color: rgba(0,245,255,0.4); color:#00f5ff; background:rgba(0,245,255,0.08); }
-.detection-tag.rifle { border-color: rgba(52,211,153,0.4); color:#34d399; background:rgba(52,211,153,0.08); }
+.detection-tag.other { border-color: rgba(52,211,153,0.4); color:#34d399; background:rgba(52,211,153,0.08); }
 
 div[data-testid="stImage"] img {
     border-radius: 10px;
@@ -129,27 +124,33 @@ div[data-testid="stImage"] img {
 </style>
 """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------------------
-# MODEL
-# ----------------------------------------------------------------------------
+
 @st.cache_resource
 def load_model():
     return YOLO("best.pt")
 
+
 model = load_model()
 
 CLASS_COLORS_BGR = {
-    "knife":  (139, 110, 255),
-    "pistol": (255, 245, 0),
-    "rifle":  (153, 211, 52),
+    "knife":      (139, 110, 255),
+    "pistol":     (255, 245, 0),
+    "smartphone": (153, 211, 52),
+    "purse":      (200, 200, 200),
+    "bill":       (200, 200, 200),
+    "card":       (200, 200, 200),
 }
-CLASS_CSS = {"knife": "knife", "pistol": "pistol", "rifle": "rifle"}
+CLASS_CSS = {"knife": "knife", "pistol": "pistol"}
+WEAPON_CLASSES = {"knife", "pistol"}
 
-def draw_boxes(img_bgr, result, model_names):
+
+def draw_boxes(img_bgr, result, model_names, weapons_only=True):
     detections = []
     for box in result.boxes:
         cls_id = int(box.cls[0])
         label = model_names[cls_id].lower()
+        if weapons_only and label not in WEAPON_CLASSES:
+            continue
         conf = float(box.conf[0])
         x1, y1, x2, y2 = map(int, box.xyxy[0])
         color = CLASS_COLORS_BGR.get(label, (200, 200, 200))
@@ -161,24 +162,27 @@ def draw_boxes(img_bgr, result, model_names):
         detections.append({"class": label.capitalize(), "confidence": round(conf, 2)})
     return img_bgr, detections
 
-def run_detection_on_pil(image_pil, conf_threshold):
+
+def run_detection_on_pil(image_pil, conf_threshold, weapons_only=True):
     img_array = np.array(image_pil.convert("RGB"))
     results = model.predict(img_array, conf=conf_threshold, verbose=False)
     result = results[0]
     img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-    img_bgr, detections = draw_boxes(img_bgr, result, model.names)
+    img_bgr, detections = draw_boxes(img_bgr, result, model.names, weapons_only)
     img_result = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(img_result), detections
 
+
 def render_detection_tags(detections):
     if not detections:
-        st.info("No weapons detected above the confidence threshold.")
+        st.info("No detections above the confidence threshold.")
         return
     tags_html = ""
     for d in detections:
-        css_class = CLASS_CSS.get(d["class"].lower(), "")
+        css_class = CLASS_CSS.get(d["class"].lower(), "other")
         tags_html += f'<span class="detection-tag {css_class}">{d["class"]} — {d["confidence"]}</span>'
     st.markdown(tags_html, unsafe_allow_html=True)
+
 
 def render_metrics(detections):
     m1, m2, m3 = st.columns(3)
@@ -195,16 +199,16 @@ def render_metrics(detections):
         st.markdown(f'<div class="glass-card"><p class="metric-label">Classes Detected</p>'
                     f'<p class="metric-value pink" style="font-size:1.15rem;">{classes_str}</p></div>', unsafe_allow_html=True)
 
-# ----------------------------------------------------------------------------
-# SIDEBAR
-# ----------------------------------------------------------------------------
+
 with st.sidebar:
     st.markdown('<p class="section-header">Configuration</p>', unsafe_allow_html=True)
     confidence = st.slider("Confidence Threshold", min_value=0.10, max_value=0.95, value=0.50, step=0.05)
+    weapons_only = st.checkbox("Weapons only (Pistol, Knife)", value=True,
+                               help="Untick to also show Smartphone, Purse, Bill and Card.")
 
     st.markdown('<p class="section-header" style="margin-top:20px;">Detection Mode</p>', unsafe_allow_html=True)
     input_mode = st.radio(
-        "",
+        "Mode",
         ["Upload Image", "Live Webcam", "Upload Video"],
         label_visibility="collapsed"
     )
@@ -213,13 +217,13 @@ with st.sidebar:
     if input_mode == "Upload Video":
         st.markdown('<p class="section-header" style="margin-top:20px;">Video Scan Settings</p>', unsafe_allow_html=True)
         frame_stride = st.slider("Analyze every Nth frame", min_value=1, max_value=30, value=5,
-                                  help="Lower = more thorough but slower. Higher = faster but may skip brief detections.")
+                                 help="Lower = more thorough but slower. Higher = faster but may skip brief detections.")
 
     st.markdown("---")
-    st.markdown('<p class="metric-label">Model</p><p style="color:#e8f6ff;font-size:0.9rem;">YOLOv8n — Weapon Detection</p>', unsafe_allow_html=True)
+    st.markdown('<p class="metric-label">Model</p><p style="color:#e8f6ff;font-size:0.9rem;">YOLOv8n fine-tuned — 6 classes</p>', unsafe_allow_html=True)
     st.markdown(
         '<p class="metric-label" style="margin-top:12px;">Classes</p>'
-        '<p style="color:#e8f6ff;font-size:0.9rem;">Knife &nbsp;|&nbsp; Pistol &nbsp;|&nbsp; Rifle</p>',
+        '<p style="color:#e8f6ff;font-size:0.9rem;">Pistol | Knife | Smartphone | Purse | Bill | Card</p>',
         unsafe_allow_html=True
     )
     st.markdown("---")
@@ -229,23 +233,19 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-# ----------------------------------------------------------------------------
-# HEADER
-# ----------------------------------------------------------------------------
+
 st.markdown('<p class="hero-title">SENTINEL // WEAPON DETECTION</p>', unsafe_allow_html=True)
 st.markdown('<p class="hero-sub">Real-time computer-vision threat detection powered by YOLOv8 — image, live feed, and video analysis.</p>', unsafe_allow_html=True)
 st.markdown(
     '<div class="status-row">'
     '<span class="status-pill">● Model Online</span>'
-    '<span class="status-pill violet">3 Classes Tracked</span>'
+    '<span class="status-pill violet">6 Classes Tracked</span>'
     f'<span class="status-pill pink">Confidence ≥ {confidence:.2f}</span>'
     '</div>',
     unsafe_allow_html=True
 )
 
-# ----------------------------------------------------------------------------
-# MODE 1 — IMAGE UPLOAD
-# ----------------------------------------------------------------------------
+
 if input_mode == "Upload Image":
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
 
@@ -257,7 +257,7 @@ if input_mode == "Upload Image":
             st.markdown('<p class="section-header">Input Image</p>', unsafe_allow_html=True)
             st.image(uploaded_image, use_container_width=True)
 
-        result_image, detections = run_detection_on_pil(uploaded_image, confidence)
+        result_image, detections = run_detection_on_pil(uploaded_image, confidence, weapons_only)
 
         with col2:
             st.markdown('<p class="section-header">Detection Output</p>', unsafe_allow_html=True)
@@ -273,9 +273,7 @@ if input_mode == "Upload Image":
     else:
         st.markdown('<div class="empty-state">Upload an image to begin detection.</div>', unsafe_allow_html=True)
 
-# ----------------------------------------------------------------------------
-# MODE 2 — LIVE WEBCAM (real-time streaming detection)
-# ----------------------------------------------------------------------------
+
 elif input_mode == "Live Webcam":
     st.markdown(
         '<div class="status-row"><span class="status-pill pink"><span class="live-dot"></span>LIVE FEED</span></div>',
@@ -290,13 +288,14 @@ elif input_mode == "Live Webcam":
     class YOLOLiveProcessor(VideoProcessorBase):
         def __init__(self):
             self.confidence = confidence
+            self.weapons_only = weapons_only
             self.detection_count = 0
 
         def recv(self, frame):
             img = frame.to_ndarray(format="bgr24")
             results = model.predict(img, conf=self.confidence, verbose=False)
             result = results[0]
-            img, detections = draw_boxes(img, result, model.names)
+            img, detections = draw_boxes(img, result, model.names, self.weapons_only)
             self.detection_count = len(detections)
             if detections:
                 cv2.rectangle(img, (0, 0), (img.shape[1], 4), (0, 0, 255), -1)
@@ -314,23 +313,23 @@ elif input_mode == "Live Webcam":
 
     if webrtc_ctx.video_processor:
         webrtc_ctx.video_processor.confidence = confidence
+        webrtc_ctx.video_processor.weapons_only = weapons_only
 
     st.markdown(
         '<div class="glass-card" style="margin-top:14px;font-size:0.85rem;color:#7d8aa3;">'
         'Note: live streaming requires camera permission in your browser. Processing speed depends on '
-        'your device/CPU — lower the confidence panel width or run on a GPU-backed host for smoother FPS.'
+        'your device/CPU, so a GPU-backed host gives smoother FPS.'
         '</div>', unsafe_allow_html=True
     )
 
-# ----------------------------------------------------------------------------
-# MODE 3 — VIDEO UPLOAD (frame-by-frame scan)
-# ----------------------------------------------------------------------------
+
 elif input_mode == "Upload Video":
     uploaded_video = st.file_uploader("Upload a video", type=["mp4", "avi", "mov", "mkv"], label_visibility="collapsed")
 
     if uploaded_video:
         tfile = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_video.name)[1])
         tfile.write(uploaded_video.read())
+        tfile.close()
         video_path = tfile.name
 
         cap = cv2.VideoCapture(video_path)
@@ -340,35 +339,38 @@ elif input_mode == "Upload Video":
         st.markdown('<p class="section-header">Scanning Video</p>', unsafe_allow_html=True)
         progress = st.progress(0, text="Analyzing frames...")
 
-        flagged_frames = []      # frames that had at least one detection
+        flagged_frames = []
         all_scanned = 0
         total_detections = 0
-
         frame_idx = 0
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if frame_idx % frame_stride == 0:
-                results = model.predict(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), conf=confidence, verbose=False)
-                result = results[0]
-                annotated, detections = draw_boxes(frame.copy(), result, model.names)
-                all_scanned += 1
-                if detections:
-                    total_detections += len(detections)
-                    timestamp_sec = frame_idx / fps
-                    flagged_frames.append({
-                        "frame_index": frame_idx,
-                        "timestamp": timestamp_sec,
-                        "image": cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB),
-                        "detections": detections,
-                    })
-                if total_frames:
-                    progress.progress(min(frame_idx / total_frames, 1.0), text=f"Analyzing frame {frame_idx}/{total_frames}...")
-            frame_idx += 1
 
-        cap.release()
-        os.unlink(video_path)
+        try:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                if frame_idx % frame_stride == 0:
+                    results = model.predict(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), conf=confidence, verbose=False)
+                    result = results[0]
+                    annotated, detections = draw_boxes(frame.copy(), result, model.names, weapons_only)
+                    all_scanned += 1
+                    if detections:
+                        total_detections += len(detections)
+                        flagged_frames.append({
+                            "frame_index": frame_idx,
+                            "timestamp": frame_idx / fps,
+                            "image": cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB),
+                            "detections": detections,
+                        })
+                    if total_frames:
+                        progress.progress(min(frame_idx / total_frames, 1.0), text=f"Analyzing frame {frame_idx}/{total_frames}...")
+                frame_idx += 1
+        finally:
+            cap.release()
+            try:
+                os.unlink(video_path)
+            except PermissionError:
+                pass
         progress.empty()
 
         st.markdown('<p class="section-header">Scan Summary</p>', unsafe_allow_html=True)
@@ -402,9 +404,9 @@ elif input_mode == "Upload Video":
             timeline_html = ""
             for f in flagged_frames:
                 timeline_html += (f'<span class="detection-tag pistol" style="cursor:default;">'
-                                   f'{f["timestamp"]:.1f}s ({len(f["detections"])})</span>')
+                                  f'{f["timestamp"]:.1f}s ({len(f["detections"])})</span>')
             st.markdown(timeline_html, unsafe_allow_html=True)
         else:
-            st.info("No weapons were detected in this video at the current confidence threshold.")
+            st.info("No detections in this video at the current confidence threshold.")
     else:
         st.markdown('<div class="empty-state">Upload a video file to scan it frame by frame for weapons.</div>', unsafe_allow_html=True)
