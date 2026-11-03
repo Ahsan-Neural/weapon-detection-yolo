@@ -14,6 +14,7 @@ Live Application: [ahsan-weapon-detection.streamlit.app](https://ahsan-weapon-de
 ## Table of Contents
 
 - [Overview](#overview)
+- [Screenshots](#screenshots)
 - [Key Features](#key-features)
 - [Detection Modes](#detection-modes)
 - [Model Details](#model-details)
@@ -34,6 +35,16 @@ Live Application: [ahsan-weapon-detection.streamlit.app](https://ahsan-weapon-de
 This project provides an end-to-end threat detection pipeline built around Ultralytics YOLOv8 and an interactive Streamlit user interface. The system detects weapon categories (such as pistols and knives) while filtering and evaluating common objects often confused with weapons in surveillance and robbery scenarios.
 
 The application supports three operational modes: static image upload, continuous live video streaming via WebRTC, and batch frame-by-frame analysis of uploaded video files with interactive timestamp indexing.
+
+---
+
+## Screenshots
+
+### Application Interface
+![Application Interface](assets/dashboard.png)
+
+### Sample Threat Detection (Knife)
+![Knife Detection Output and Metrics](assets/knife-detection.png)
 
 ---
 
@@ -88,13 +99,16 @@ The model includes everyday carry items (smartphones, wallets/purses, cards, ban
 
 ```text
 weapon-detection-yolo/
-|-- app.py              # Streamlit web application and WebRTC pipeline
-|-- best.pt             # Pre-trained YOLOv8 model weights
-|-- packages.txt        # Debian system dependencies (libgl1, libglib)
-|-- requirements.txt    # Python library dependencies
-|-- runtime.txt         # Pinned Python version (python-3.11)
-|-- LICENSE             # MIT license file
-`-- README.md           # Project documentation
+|-- assets/
+|   |-- dashboard.png       # Application interface preview
+|   `-- knife-detection.png # Sample detection output
+|-- app.py                  # Streamlit web application and WebRTC pipeline
+|-- best.pt                 # Pre-trained YOLOv8 model weights
+|-- packages.txt            # Debian system dependencies (libgl1, libglib)
+|-- requirements.txt        # Python library dependencies
+|-- runtime.txt             # Pinned Python version (python-3.11)
+|-- LICENSE                 # MIT license file
+`-- README.md               # Project documentation
 ```
 
 ---
